@@ -65,6 +65,7 @@ get_battery_capacity (int *capacity)
   *capacity = atoi (line);
 
 capacity_free:
+  free(line);
   fclose (file);
   return res;
 }
