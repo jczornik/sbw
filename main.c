@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define CANNOT_CONN_TO_DBUS_FATAL 1
+
 bool
 connect_to_dbus (DBusConnection **conn)
 {
@@ -65,7 +67,7 @@ get_battery_capacity (int *capacity)
   *capacity = atoi (line);
 
 capacity_free:
-  free(line);
+  free (line);
   fclose (file);
   return res;
 }
@@ -74,9 +76,16 @@ int
 main ()
 {
   DBusConnection *connection = NULL;
-  connect_to_dbus (&connection);
+  if (connect_to_dbus (&connection))
+    {
+      fprintf (stderr, "Cannot connect to dbus. Exiting...");
+      exit (CANNOT_CONN_TO_DBUS_FATAL);
+    }
+
   int capacity = 0;
   get_battery_capacity (&capacity);
   printf ("Capacity: %d\n", capacity);
+
+  dbus_connection_unref (connection);
   return 0;
 }
