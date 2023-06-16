@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #define CANNOT_CONN_TO_DBUS_FATAL 1
+#define CANNOT_READ_BAT_CAPACITY  2
 
 bool
 connect_to_dbus (DBusConnection **conn)
@@ -131,7 +132,11 @@ main ()
     }
 
   int capacity = 0;
-  get_battery_capacity (&capacity);
+  if (!get_battery_capacity (&capacity))
+    {
+      exit(CANNOT_READ_BAT_CAPACITY)
+    }
+
   printf ("Capacity: %d\n", capacity);
   send_user_notification (connection);
 
