@@ -134,7 +134,7 @@ main ()
   int capacity = 0;
   if (!get_battery_capacity (&capacity))
     {
-      exit(CANNOT_READ_BAT_CAPACITY)
+      exit(CANNOT_READ_BAT_CAPACITY);
     }
 
   printf ("Capacity: %d\n", capacity);
