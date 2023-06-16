@@ -74,6 +74,12 @@ get_battery_capacity (int *capacity)
     }
 
   *capacity = atoi (line);
+  if (*capacity == 0)
+    {
+      fprintf (stderr, "Cannot covert battery capacity\n");
+      return false;
+    }
+
   return true;
 }
 
