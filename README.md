@@ -2,6 +2,27 @@
 
 The goal of this project is to warn users about low levels of battery when using i3wm.
 
+When the battery fails below given levels (by default 30%, 20%, and 5%), the notficiation will be displayed on
+the screen as shown below:
+
+![Alt text](./screenshots/info.png)
+
+## Installation
+
+You can download the latest release for releases. Next, copy the program to `/usr/bin`.
+If you'd like, you can install the program using makefile - have a look and the `Building using the local environment`
+section in this manual.
+
+## Usage
+
+Add the following line to your `i3` config file:
+
+```
+exec --no-startup-id sbw
+```
+
+And you are ready to go.
+
 ## Building project
 
 You can build your project locally or using provided Dockerfile.
