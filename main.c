@@ -15,10 +15,10 @@
 
 enum NotificationType
 {
-  NONE = 1,
-  INFORM,
+  INFORM = 0,
   WARN,
-  CRITICAL
+  CRITICAL,
+  NONE
 };
 
 struct NotificationStatus
@@ -26,6 +26,13 @@ struct NotificationStatus
   bool inform;
   bool warn;
   bool critical;
+};
+
+struct NotificationMessageInfo
+{
+  const char *title;
+  const char *message;
+  enum NotificationType type;
 };
 
 bool
@@ -106,7 +113,8 @@ get_battery_capacity (int *capacity)
 }
 
 bool
-send_user_notification (DBusConnection *conn)
+send_user_notification (DBusConnection *conn,
+                        const struct NotificationMessageInfo *info)
 {
   DBusMessage *message = dbus_message_new_method_call (
       "org.freedesktop.Notifications", "/org/freedesktop/Notifications",
@@ -117,12 +125,11 @@ send_user_notification (DBusConnection *conn)
   dbus_message_iter_append_basic (iter, 's', &application);
   unsigned id = 0;
   dbus_message_iter_append_basic (iter, 'u', &id);
-  char *icon = "dialog-information";
+  const char *icon = "dialog-information";
   dbus_message_iter_append_basic (iter, 's', &icon);
-  char *summary = "Hello world!";
-  dbus_message_iter_append_basic (iter, 's', &summary);
-  char *body = "This is an example notification.";
-  dbus_message_iter_append_basic (iter, 's', &body);
+
+  dbus_message_iter_append_basic (iter, 's', &info->title);
+  dbus_message_iter_append_basic (iter, 's', &info->message);
   dbus_message_iter_open_container (iter, 'a', "s", iter + 1);
   dbus_message_iter_close_container (iter, iter + 1);
   dbus_message_iter_open_container (iter, 'a', "{sv}", iter + 1);
@@ -130,13 +137,8 @@ send_user_notification (DBusConnection *conn)
   char *urgency = "urgency";
   dbus_message_iter_append_basic (iter + 2, 's', &urgency);
   dbus_message_iter_open_container (iter + 2, 'v', "y", iter + 3);
-  enum
-  {
-    LOW,
-    NORMAL,
-    CRITICAL
-  };
-  unsigned char level = CRITICAL;
+
+  unsigned char level = info->type;
   dbus_message_iter_append_basic (iter + 3, 'y', &level);
   dbus_message_iter_close_container (iter + 2, iter + 3);
   dbus_message_iter_close_container (iter + 1, iter + 2);
@@ -159,8 +161,6 @@ get_notification_type ()
       exit (CANNOT_READ_BAT_CAPACITY);
     }
 
-  printf ("Battery level %d\n", capacity);
-
   enum NotificationType res = NONE;
 
   if (capacity <= CRITICAL_BAT_LEVEL)
@@ -175,7 +175,7 @@ get_notification_type ()
 
   else if (capacity <= INFORM_BAT_LEVEL)
     {
-      res = CRITICAL;
+      res = INFORM;
     }
 
   return res;
@@ -188,6 +188,22 @@ main ()
   DBusConnection *connection = NULL;
   struct NotificationStatus status = { false, false, false };
 
+  struct NotificationMessageInfo information_message
+      = { "Battery getting low",
+          "Your battery level is getting low. Please consider charging it.",
+          INFORM };
+
+  struct NotificationMessageInfo warn_message
+      = { "Battery getting very low",
+          "Your battery level is getting low. Please consider charging it.",
+          WARN };
+
+  struct NotificationMessageInfo critical_message
+      = { "Battery getting critically low",
+          "Your battery level is getting critically low. Your computer will "
+          "switch off shortly.",
+          WARN };
+
   if (!connect_to_dbus (&connection))
     {
       fprintf (stderr, "Cannot connect to dbus. Exiting...");
@@ -199,19 +215,19 @@ main ()
       type = get_notification_type ();
       if (type == INFORM && !status.inform)
         {
-          send_user_notification (connection);
+          send_user_notification (connection, &information_message);
           status.inform = true;
         }
 
       else if (type == WARN && !status.warn)
         {
-          send_user_notification (connection);
+          send_user_notification (connection, &warn_message);
           status.warn = true;
         }
 
       else if (type == CRITICAL && !status.critical)
         {
-          send_user_notification (connection);
+          send_user_notification (connection, &critical_message);
           status.critical = true;
         }
 
