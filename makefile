@@ -1,5 +1,5 @@
 CC := gcc
-CFLAGS := -Wall -Werror -Wall -Wextra $(shell pkg-config --cflags dbus-1)
+CFLAGS := -Wall -Werror -Wall -Wextra -fanalyzer $(shell pkg-config --cflags dbus-1)
 LFLAGS := -ldbus-1
 DBGFLAGS := -g
 
