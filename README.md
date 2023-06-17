@@ -5,7 +5,9 @@ The goal of this project is to warn users about low levels of battery when using
 When the battery fails below given levels (by default 30%, 20%, and 5%), the notficiation will be displayed on
 the screen as shown below:
 
-![Alt text](./screenshots/info.png)
+![Alt text](./screenshots/info.png "Below 30%")
+![Alt text](./screenshots/warn.png "Below 20%")
+![Alt text](./screenshots/critical.png "Below 5%")
 
 ## Installation
 
