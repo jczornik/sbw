@@ -2,10 +2,13 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #define CANNOT_CONN_TO_DBUS_FATAL 1
-#define CANNOT_READ_BAT_CAPACITY 2
+#define CANNOT_READ_BAT_CAPACITY_FATAL 2
+#define CANNOT_READ_BAT_STATUS_FATAL 3
+#define UNKNOWN_BATTERY_STATUS_FATAL 4
 
 #define CHECK_INTERVAL 60
 
@@ -17,12 +20,24 @@
 #define WARN_BAT_LEVEL_INFO_TIMEOUT_SEC 60
 #define INFORM_BAT_LEVEL_INFO_TIMEOUT_SEC 20
 
+#define BATTERY_STATUS_CHARGING "Charging"
+#define BATTERY_STATUS_CHARGING_LEN 8
+#define BATTERY_STATUS_DISCHARGING "Discharging"
+#define BATTERY_STATUS_DISCHARGING_LEN 11
+
 enum NotificationType
 {
   INFORM = 0,
   WARN,
   CRITICAL,
   NONE
+};
+
+enum BatteryStatus
+{
+  CHARGING,
+  DISCHARGING,
+  UNKNOWN
 };
 
 struct NotificationStatus
@@ -108,12 +123,50 @@ get_battery_capacity (int *capacity)
     }
 
   *capacity = atoi (line);
+  free (line);
+  line = NULL;
+
   if (*capacity == 0)
     {
       fprintf (stderr, "Cannot covert battery capacity\n");
       return false;
     }
 
+  return true;
+}
+
+bool
+get_battery_status (enum BatteryStatus *status)
+{
+  const char *path = "/sys/class/power_supply/BAT0/status";
+  char *line = NULL;
+  size_t len = 0;
+
+  if (!read_line_from_file (path, &line, &len))
+    {
+      fprintf (stderr, "Cannot read battery status\n");
+      return false;
+    }
+
+  if (strncmp (BATTERY_STATUS_CHARGING, line, BATTERY_STATUS_CHARGING_LEN)
+      == 0)
+    {
+      *status = CHARGING;
+    }
+
+  else if (strncmp (BATTERY_STATUS_DISCHARGING, line,
+                    BATTERY_STATUS_DISCHARGING_LEN)
+           == 0)
+    {
+      *status = DISCHARGING;
+    }
+
+  else
+    {
+      *status = UNKNOWN;
+    }
+
+  free (line);
   return true;
 }
 
@@ -163,7 +216,7 @@ get_notification_type ()
 
   if (!get_battery_capacity (&capacity))
     {
-      exit (CANNOT_READ_BAT_CAPACITY);
+      exit (CANNOT_READ_BAT_CAPACITY_FATAL);
     }
 
   enum NotificationType res = NONE;
@@ -190,8 +243,9 @@ int
 main ()
 {
   enum NotificationType type;
+  enum BatteryStatus bstatus;
   DBusConnection *connection = NULL;
-  struct NotificationStatus status = { false, false, false };
+  struct NotificationStatus nstatus = { false, false, false };
 
   struct NotificationMessageInfo information_message
       = { "Battery getting low",
@@ -217,23 +271,43 @@ main ()
 
   while (1)
     {
-      type = get_notification_type ();
-      if (type == INFORM && !status.inform)
+      if (!get_battery_status (&bstatus))
         {
-          send_user_notification (connection, &information_message);
-          status.inform = true;
+          exit (CANNOT_READ_BAT_STATUS_FATAL);
         }
 
-      else if (type == WARN && !status.warn)
+      if (bstatus == DISCHARGING)
         {
-          send_user_notification (connection, &warn_message);
-          status.warn = true;
+          type = get_notification_type ();
+          if (type == INFORM && !nstatus.inform)
+            {
+              send_user_notification (connection, &information_message);
+              nstatus.inform = true;
+            }
+
+          else if (type == WARN && !nstatus.warn)
+            {
+              send_user_notification (connection, &warn_message);
+              nstatus.warn = true;
+            }
+
+          else if (type == CRITICAL && !nstatus.critical)
+            {
+              send_user_notification (connection, &critical_message);
+              nstatus.critical = true;
+            }
         }
 
-      else if (type == CRITICAL && !status.critical)
+      else if (bstatus == CHARGING)
         {
-          send_user_notification (connection, &critical_message);
-          status.critical = true;
+          nstatus.inform = false;
+          nstatus.warn = false;
+          nstatus.critical = false;
+        }
+
+      else
+        {
+          exit (UNKNOWN_BATTERY_STATUS_FATAL);
         }
 
       sleep (CHECK_INTERVAL);
