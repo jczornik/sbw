@@ -13,6 +13,10 @@
 #define WARN_BAT_LEVEL 20
 #define INFORM_BAT_LEVEL 30
 
+#define CRITICAL_BAT_LEVEL_INFO_TIMEOUT_SEC 600
+#define WARN_BAT_LEVEL_INFO_TIMEOUT_SEC 60
+#define INFORM_BAT_LEVEL_INFO_TIMEOUT_SEC 20
+
 enum NotificationType
 {
   INFORM = 0,
@@ -32,7 +36,8 @@ struct NotificationMessageInfo
 {
   const char *title;
   const char *message;
-  enum NotificationType type;
+  const enum NotificationType type;
+  const int timeout;
 };
 
 bool
@@ -143,7 +148,7 @@ send_user_notification (DBusConnection *conn,
   dbus_message_iter_close_container (iter + 2, iter + 3);
   dbus_message_iter_close_container (iter + 1, iter + 2);
   dbus_message_iter_close_container (iter, iter + 1);
-  int timeout = 5 * 1000;
+  int timeout = info->timeout * 1000;
   dbus_message_iter_append_basic (iter, 'i', &timeout);
   dbus_connection_send (conn, message, 0);
   dbus_connection_flush (conn);
@@ -191,18 +196,18 @@ main ()
   struct NotificationMessageInfo information_message
       = { "Battery getting low",
           "Your battery level is getting low. Please consider charging it.",
-          INFORM };
+          INFORM, INFORM_BAT_LEVEL_INFO_TIMEOUT_SEC };
 
   struct NotificationMessageInfo warn_message
       = { "Battery getting very low",
           "Your battery level is getting low. Please consider charging it.",
-          WARN };
+          WARN, WARN_BAT_LEVEL_INFO_TIMEOUT_SEC };
 
   struct NotificationMessageInfo critical_message
       = { "Battery getting critically low",
           "Your battery level is getting critically low. Your computer will "
           "switch off shortly.",
-          WARN };
+          CRITICAL, CRITICAL_BAT_LEVEL_INFO_TIMEOUT_SEC };
 
   if (!connect_to_dbus (&connection))
     {
