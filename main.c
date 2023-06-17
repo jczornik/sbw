@@ -161,6 +161,7 @@ get_battery_status (enum BatteryStatus *status)
       *status = UNKNOWN;
     }
 
+  free(line);
   return true;
 }
 
