@@ -1,2 +1,4 @@
 *.o
 sbw
+.cache
+compile_commands.json
