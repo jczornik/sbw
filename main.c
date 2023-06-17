@@ -2,9 +2,31 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #define CANNOT_CONN_TO_DBUS_FATAL 1
 #define CANNOT_READ_BAT_CAPACITY 2
+
+#define CHECK_INTERVAL 60
+
+#define CRITICAL_BAT_LEVEL 5
+#define WARN_BAT_LEVEL 20
+#define INFORM_BAT_LEVEL 30
+
+enum NotificationType
+{
+  NONE = 1,
+  INFORM,
+  WARN,
+  CRITICAL
+};
+
+struct NotificationStatus
+{
+  bool inform;
+  bool warn;
+  bool critical;
+};
 
 bool
 connect_to_dbus (DBusConnection **conn)
@@ -127,24 +149,74 @@ send_user_notification (DBusConnection *conn)
   return true;
 }
 
+enum NotificationType
+get_notification_type ()
+{
+  int capacity = 0;
+
+  if (!get_battery_capacity (&capacity))
+    {
+      exit (CANNOT_READ_BAT_CAPACITY);
+    }
+
+  printf ("Battery level %d\n", capacity);
+
+  enum NotificationType res = NONE;
+
+  if (capacity <= CRITICAL_BAT_LEVEL)
+    {
+      res = CRITICAL;
+    }
+
+  else if (capacity <= WARN_BAT_LEVEL)
+    {
+      res = WARN;
+    }
+
+  else if (capacity <= INFORM_BAT_LEVEL)
+    {
+      res = CRITICAL;
+    }
+
+  return res;
+}
+
 int
 main ()
 {
+  enum NotificationType type;
   DBusConnection *connection = NULL;
+  struct NotificationStatus status = { false, false, false };
+
   if (!connect_to_dbus (&connection))
     {
       fprintf (stderr, "Cannot connect to dbus. Exiting...");
       exit (CANNOT_CONN_TO_DBUS_FATAL);
     }
 
-  int capacity = 0;
-  if (!get_battery_capacity (&capacity))
+  while (1)
     {
-      exit (CANNOT_READ_BAT_CAPACITY);
-    }
+      type = get_notification_type ();
+      if (type == INFORM && !status.inform)
+        {
+          send_user_notification (connection);
+          status.inform = true;
+        }
 
-  printf ("Capacity: %d\n", capacity);
-  send_user_notification (connection);
+      else if (type == WARN && !status.warn)
+        {
+          send_user_notification (connection);
+          status.warn = true;
+        }
+
+      else if (type == CRITICAL && !status.critical)
+        {
+          send_user_notification (connection);
+          status.critical = true;
+        }
+
+      sleep (CHECK_INTERVAL);
+    }
 
   dbus_connection_unref (connection);
   return 0;
