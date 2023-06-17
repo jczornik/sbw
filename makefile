@@ -1,4 +1,3 @@
-# tool macros
 CC := gcc
 CFLAGS := -Wall -Werror -Wall -Wextra $(shell pkg-config --cflags dbus-1)
 LFLAGS := -ldbus-1
@@ -20,3 +19,6 @@ clean:
 install: build
 	mkdir -p ~/.local/bin
 	cp sbw ~/.local/bin/
+
+global_install: build
+	cp sbw /usr/bin/
