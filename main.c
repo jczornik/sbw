@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #define CANNOT_CONN_TO_DBUS_FATAL 1
@@ -17,12 +18,24 @@
 #define WARN_BAT_LEVEL_INFO_TIMEOUT_SEC 60
 #define INFORM_BAT_LEVEL_INFO_TIMEOUT_SEC 20
 
+#define BATTERY_STATUS_CHARGING "Charging"
+#define BATTERY_STATUS_CHARGING_LEN 8
+#define BATTERY_STATUS_DISCHARGING "Discharing"
+#define BATTERY_STATUS_DISCHARGING_LEN 11
+
 enum NotificationType
 {
   INFORM = 0,
   WARN,
   CRITICAL,
   NONE
+};
+
+enum BatteryStatus
+{
+  CHARGING,
+  DISCHARGING,
+  UNKNOWN
 };
 
 struct NotificationStatus
@@ -112,6 +125,40 @@ get_battery_capacity (int *capacity)
     {
       fprintf (stderr, "Cannot covert battery capacity\n");
       return false;
+    }
+
+  return true;
+}
+
+bool
+get_battery_status (enum BatteryStatus *status)
+{
+  const char *path = "/sys/class/power_supply/BAT0/status";
+  char *line = NULL;
+  size_t len = 0;
+
+  if (!read_line_from_file (path, &line, &len))
+    {
+      fprintf (stderr, "Cannot read battery status\n");
+      return false;
+    }
+
+  if (strncmp (BATTERY_STATUS_CHARGING, line, BATTERY_STATUS_CHARGING_LEN)
+      == 0)
+    {
+      *status = CHARGING;
+    }
+
+  else if (strncmp (BATTERY_STATUS_DISCHARGING, line,
+                    BATTERY_STATUS_DISCHARGING_LEN)
+           == 0)
+    {
+      *status = DISCHARGING;
+    }
+
+  else
+    {
+      *status = UNKNOWN;
     }
 
   return true;
