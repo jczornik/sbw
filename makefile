@@ -9,7 +9,7 @@ DBG_PATH := debug
 build: main.o
 	gcc main.o $(LFLAGS) -o sbw
 
-main.o: main.c
+main.o: main.c config.h
 	gcc -c $(CFLAGS) main.c
 
 clean:
