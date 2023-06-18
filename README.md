@@ -34,11 +34,7 @@ Add the following line to your `i3` config file:
 exec --no-startup-id sbw
 ```
 
-And you are ready to go.
-
 ## Building project
-
-You can build your project locally or using provided Dockerfile.
 
 ### Building using the local environment
 
