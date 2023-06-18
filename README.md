@@ -9,6 +9,10 @@ the screen as shown below:
 ![Alt text](./screenshots/warn.png "Below 20%")
 ![Alt text](./screenshots/critical.png "Below 5%")
 
+## Runtime dependencies
+
+To run this program, you need to have `dbus library` installed (libdbus-1-3 on Debian 12).
+
 ## Installation
 
 You can download the latest release for releases. Next, copy the program to `/usr/bin`.
@@ -16,6 +20,13 @@ If you'd like, you can install the program using makefile - have a look and the 
 section in this manual.
 
 ## Usage
+
+### Test
+
+To test, if program is working correctly (there are no dependencies missing) just `cd` to folder with binary and run `./sbw`.
+If there are no errors you are good to go.
+
+### Adding to i3
 
 Add the following line to your `i3` config file:
 
@@ -28,8 +39,6 @@ And you are ready to go.
 ## Building project
 
 You can build your project locally or using provided Dockerfile.
-
-### Building using Dockerfile
 
 ### Building using the local environment
 
