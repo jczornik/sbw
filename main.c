@@ -16,6 +16,8 @@
 #define BATTERY_STATUS_CHARGING_LEN 8
 #define BATTERY_STATUS_DISCHARGING "Discharging"
 #define BATTERY_STATUS_DISCHARGING_LEN 11
+#define BATTERY_STATUS_FULL "Full"
+#define BATTERY_STATUS_FULL_LEN 4
 
 enum NotificationType
 {
@@ -151,6 +153,11 @@ get_battery_status (enum BatteryStatus *status)
            == 0)
     {
       *status = DISCHARGING;
+    }
+
+  else if (strncmp (BATTERY_STATUS_FULL, line, BATTERY_STATUS_FULL_LEN) == 0)
+    {
+      *status = CHARGING;
     }
 
   else
